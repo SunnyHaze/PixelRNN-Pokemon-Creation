@@ -1,14 +1,16 @@
 # from datasets.img_reader import colormap, pixel_color
 import argparse
-from torch.utils.tensorboard import SummaryWriter
 import torch
+from matplotlib import pyplot as plt
 from torch.nn import functional as F
 from torch import nn as nn
 from torch import optim as optim 
 from torch.utils.data import random_split, DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
 
 from utils.data_utils import custom_dataset
+from utils.img_reader import mapping_img, txt_matrix_reader
 from model import PixelRNN
 
 def get_args_parser():
@@ -23,6 +25,10 @@ def get_args_parser():
                         help = 'Learning rate')
     parser.add_argument("--device", default="cuda", type=str,
                         help="Device: cuda or GPU")
+    parser.add_argument("--test_period", default=4, type=int,
+                        help = 'Test when go through this epochs')
+    parser.add_argument("--mask_rate", default=0.5, type=int,
+                        help = 'masked rate of the input images')
     return parser
 
 def generate_image(model, initial_pixels, max_pixels=400):
@@ -49,12 +55,13 @@ def generate_image(model, initial_pixels, max_pixels=400):
         generated_image.append(next_pixel)
     
     return generated_image
-    
 
 def main(args):
+    torch.manual_seed(114)
     log_writer = SummaryWriter(log_dir=args.output_dir)
     
     my_dataset = custom_dataset("pixel_color.txt")
+    whole_dataset = custom_dataset("pixel_color.txt", seq_len=-1)
 
     train_ratio = 0.995
     test_ratio = 1 - train_ratio
@@ -72,11 +79,8 @@ def main(args):
         batch_size = args.batch_size, 
         shuffle=True
     )
-    test_loader = DataLoader(
-        test_dataset, 
-        batch_size=args.batch_size, 
-        shuffle=False
-    )
+
+
     device = args.device
     model = PixelRNN()
     
@@ -89,11 +93,34 @@ def main(args):
     # hidden state for LSTM
     # hidden = model.init_hidden(args.batch_size, device = device)
     # hidden = hidden.to(device)
+
+    # previsualize the test images:
+    test_rgb_images = []
+    test_rgb_images_masked = []
+    for idx, _, _ in test_dataset:
+        img = whole_dataset[idx]
+        pixel_img = torch.argmax(img, dim=-1)
+        rgb_img = torch.tensor(mapping_img(pixel_img))
+        
+        mask_height = int(args.mask_rate * 20)
+        test_rgb_images.append(rgb_img)      
+        test_rgb_images_masked.append(rgb_img[:, 0:mask_height, : ])
+    # exit(0)
+    
+    print(rgb_img.shape)
+    test_rgb_img = torch.cat(test_rgb_images)
+    print(test_rgb_img.shape)
+    test_rgb_img_masked = torch.cat(test_rgb_images_masked)
+    log_writer.add_image("test_set/raw", test_rgb_img.permute(2, 0, 1).unsqueeze(0))
+    log_writer.add_image("test_set/masked", test_rgb_img_masked.permute(2, 0, 1).unsqueeze(0))
+    exit(0)
     
     for epoch in range(args.epoch):
         running_loss = 0.0
+        # test for one epoch
         
-        # train
+        
+        # train for one epoch
         model.train()
         for data, label in train_loader:
             data, label = data.to(device), label.to(device)
@@ -106,13 +133,15 @@ def main(args):
                 label.view(-1, label.size(-1) )             # B, Dim
                 )
             # print(loss)
-
             loss.backward()
             optimizer.step()
             running_loss += loss
         log_writer.add_scalar("train/epoch_loss", running_loss, epoch)
         print(f"Epoch {epoch+1}, Loss: {running_loss / len(train_loader)}")
         log_writer.flush()
+        
+
+        
 
 if __name__ == "__main__":
     args = get_args_parser()

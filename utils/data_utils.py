@@ -13,17 +13,21 @@ class custom_dataset(Dataset):
         self.seq_len = seq_len
         self.one_hot_data = id_matrix[pixel_color_data] # shape: 792 400 167
         
-        
     def __getitem__(self, idx):
         sample = self.one_hot_data[idx]
         start_p_idx = torch.randint(0, 400 - self.seq_len - 1, (1,)) # minus 1 to give space to label
         stop_p_idx = start_p_idx + self.seq_len
         # print(start_p_idx, stop_p_idx)
         label = sample[stop_p_idx + 1]
-        return sample[start_p_idx : stop_p_idx], label
+        
+        if self.seq_len == -1 or self.seq_len < 0:
+            return sample
+        else:
+            return idx, sample[start_p_idx : stop_p_idx], label
         
     def __len__(self):
         return len(self.one_hot_data)
+    
 if __name__ == "__main__":
     data = custom_dataset("pixel_color.txt")
     import pdb

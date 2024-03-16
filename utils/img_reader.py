@@ -13,8 +13,8 @@ colormap = txt_matrix_reader("colormap.txt")
 pixel_color = txt_matrix_reader("pixel_color.txt")
 
 
-def mapping_img(img):
-    return np.reshape( colormap[img], (20, 20, 3))
+def mapping_img(img, shape = (20, 20, 3) ):
+    return np.reshape( colormap[img], shape)
 
 if __name__ == "__main__":
     # colormap = txt_matrix_reader("colormap.txt")
