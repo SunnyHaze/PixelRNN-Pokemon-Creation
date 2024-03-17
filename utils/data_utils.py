@@ -15,10 +15,11 @@ class custom_dataset(Dataset):
         
     def __getitem__(self, idx):
         sample = self.one_hot_data[idx]
-        start_p_idx = torch.randint(0, 400 - self.seq_len - 1, (1,)) # minus 1 to give space to label
+        start_p_idx = torch.randint(0, 400 - self.seq_len, (1,)) # minus 1 to give space to label
         stop_p_idx = start_p_idx + self.seq_len
         # print(start_p_idx, stop_p_idx)
-        label = sample[stop_p_idx + 1]
+        label = sample[stop_p_idx]
+        # print(start_p_idx, stop_p_idx, stop_p_idx)
         
         if self.seq_len == -1 or self.seq_len < 0:
             return sample

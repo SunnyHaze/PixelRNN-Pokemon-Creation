@@ -9,16 +9,23 @@ class PixelRNN(nn.Module):
         self.hidden_size = hidden_size
         # 定义LSTM层
         self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
-
+        # self.norm = nn.BatchNorm1d(512)
         # 定义输出层
         self.fc = nn.Linear(hidden_size, input_size)
 
-    def forward(self, x):
+    def forward(self, x, hidden = None):
         # LSTM前向传播
-        out, hidden = self.lstm(x)
+        if hidden != None:
+            out, hidden = self.lstm(x, hidden)
+        else:
+            out, hidden = self.lstm(x)
         
+        # print(out.shape)  # 1, 40, 512
+        # out = self.norm(out.permute(0, 2, 1)).permute(0, 2, 1)
         # 使用全连接层进行预测
         out = self.fc(out)
+        
+        # out = torch.softmax(out, dim=1)
         return out, hidden
 
     def init_hidden(self, batch_size, device):
