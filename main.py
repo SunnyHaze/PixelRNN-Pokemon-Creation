@@ -12,9 +12,39 @@ from pathlib import Path
 
 from utils.data_utils import custom_dataset
 from utils.img_reader import mapping_img, txt_matrix_reader, colormap
-from model import PixelRNN
 from utils.lr_sched  import adjust_learning_rate
 import numpy as np
+
+class PixelRNN(nn.Module):
+    def __init__(self, input_size = 167, hidden_size=512):
+        super(PixelRNN, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        # 定义LSTM层
+        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
+        # self.norm = nn.BatchNorm1d(512)
+        # 定义输出层
+        self.fc = nn.Linear(hidden_size, input_size)
+
+    def forward(self, x, hidden = None):
+        # LSTM前向传播
+        if hidden != None:
+            out, hidden = self.lstm(x, hidden)
+        else:
+            out, hidden = self.lstm(x)
+        
+        # print(out.shape)  # 1, 40, 512
+        # out = self.norm(out.permute(0, 2, 1)).permute(0, 2, 1)
+        # 使用全连接层进行预测
+        out = self.fc(out)
+        
+        # out = torch.softmax(out, dim=1)
+        return out, hidden
+
+    # def init_hidden(self, batch_size, device):
+    #     # 初始化隐藏状态
+    #     return (torch.zeros(1, batch_size, self.hidden_size, device = device),
+    #             torch.zeros(1, batch_size, self.hidden_size, device = device))
 
 def get_args_parser():
     parser = argparse.ArgumentParser('Pokemon Generator by LSTM Training', add_help=True)
@@ -22,7 +52,7 @@ def get_args_parser():
                         help="Batchsize per GPU")
     parser.add_argument("--seq_len", default=100, type=int,
                         help="Batchsize per GPU")
-    parser.add_argument("--output_dir", default="out_lr1e-3_b64_epoch5000_argmax_seqlen100_lrsched_noNorm_larger_seed42", type= str,
+    parser.add_argument("--output_dir", default="out_lr1e-3_b64_epoch5000_argmax_seqlen100_lrsched_noNorm_larger_seed41", type= str,
     # parser.add_argument("--output_dir", default="out_test", type= str,
                         help = 'output dir for ckpt and logs')
     parser.add_argument("--epoch", default=5000, type=int,
@@ -41,8 +71,8 @@ def get_args_parser():
                         help = 'warmup epochs')
     parser.add_argument("--min_lr", default=1e-7, type=float,
                         help = 'min lr for lr schedule')
-    parser.add_argument("--seed", default=42, type=int,
-                        help = 'min lr for lr schedule')
+    parser.add_argument("--seed", default=41, type=int,
+                        help = 'random seed init')
 
     return parser
 
@@ -58,7 +88,7 @@ def generate_image(model:PixelRNN, initial_pixels, max_pixels=400):
         # 使用模型进行预测
         model.eval()
         with torch.no_grad():
-            output, hidden = model(input_tensor, model.init_hidden(1, args.device))
+            output, hidden = model(input_tensor)
         # print(output.shape)
         # print(output[:, -1, :])
         # 从输出中获取下一个像素的概率分布
@@ -175,7 +205,7 @@ def main(args):
         for _, data, label in train_loader:
             data, label = data.to(device), label.to(device)
             optimizer.zero_grad()
-            pred, hidden = model(data, model.init_hidden(args.batch_size, args.device))
+            pred, hidden = model(data)
             
             pred_pixel = pred[:, -1, :] # Batch, seq_len, dim
             loss = criterion(
