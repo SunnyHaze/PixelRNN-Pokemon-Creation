@@ -65,7 +65,7 @@
 - lr基本就是1e-3是比较理想的
 - 目前默认为5000epoch，目测到10000epoch也是一个合理的参数。
 - batch_size可以根据不同的设备适当调整，可能也需要跟着调整epoch和lr
-- **可以多做尝试，多换学习率和随机种子，有好的结果或者不好的结果可以在本仓库的discussion版块一起讨论。**
+- **可以多做尝试，多换学习率和随机种子，有好的结果或者不好的结果可以在本仓库的[discussion版块](https://github.com/SunnyHaze/PixelRNN-Pokemon-Creation/discussions)一起讨论。**
 
 
 ### 一些生成结果展示
@@ -77,3 +77,10 @@
 ![](./images/result2.png)
 
 ![](./images/result3.png)
+
+## 结语
+如果喜欢的话，给个Star呗！也欢迎提issue优化可能的bug！
+
+----------
+
+<div align="center"><a href="https://info.flagcounter.com/4vS4"><img src="https://s01.flagcounter.com/count2/4vS4/bg_FFFFFF/txt_000000/border_CCCCCC/columns_3/maxflags_12/viewers_0/labels_1/pageviews_1/flags_0/percent_0/" alt="Flag Counter" border="0"></a></div>
